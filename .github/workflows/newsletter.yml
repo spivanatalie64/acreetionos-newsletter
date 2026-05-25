@@ -20,6 +20,5 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          EMAIL_LIST: ${{ secrets.EMAIL_LIST }}
           GH_PAT: ${{ secrets.GH_PAT }}
         run: python3 newsletter.py

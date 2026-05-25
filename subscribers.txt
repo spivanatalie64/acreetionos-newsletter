@@ -1,0 +1,3 @@
+# AcreetionOS Newsletter Subscribers
+# One email per line. Lines starting with # are ignored.
+

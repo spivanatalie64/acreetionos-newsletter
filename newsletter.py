@@ -6,8 +6,16 @@ from datetime import datetime
 
 OPENROUTER_API_KEY = os.environ["OPENROUTER_API_KEY"]
 RESEND_API_KEY = os.environ["RESEND_API_KEY"]
-EMAIL_LIST = os.environ["EMAIL_LIST"]
 GH_PAT = os.environ["GH_PAT"]
+
+
+def load_subscribers():
+    with open("subscribers.txt") as f:
+        return [
+            line.strip()
+            for line in f
+            if line.strip() and not line.startswith("#")
+        ]
 
 MODEL = "meta-llama/llama-4-maverick:free"
 WEBSITE_REPO = "acreetionos-code/acreetionos-code.github.io"
@@ -67,7 +75,7 @@ def generate_newsletter():
 
 
 def send_emails(subject, body):
-    recipients = [e.strip() for e in EMAIL_LIST.split(",") if e.strip()]
+    recipients = load_subscribers()
 
     for email in recipients:
         response = requests.post(
