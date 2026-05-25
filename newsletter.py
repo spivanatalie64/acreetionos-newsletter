@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 import os
+import json
 import requests
+from datetime import datetime
 
 OPENROUTER_API_KEY = os.environ["OPENROUTER_API_KEY"]
-BUTTONDOWN_API_KEY = os.environ["BUTTONDOWN_API_KEY"]
+RESEND_API_KEY = os.environ["RESEND_API_KEY"]
+EMAIL_LIST = os.environ["EMAIL_LIST"]
+GH_PAT = os.environ["GH_PAT"]
 
 MODEL = "meta-llama/llama-4-maverick:free"
+WEBSITE_REPO = "acreetionos-code/acreetionos-code.github.io"
+FROM_EMAIL = "newsletter@acreetionos.org"
 
 
 def generate_newsletter():
@@ -26,28 +32,28 @@ def generate_newsletter():
                         "the Cinnamon desktop, XLibre/X11 for stability, Pipewire audio, "
                         "EXT4 filesystem, and a strong focus on privacy and system sovereignty. "
                         "It is a rolling release distro that is beginner-friendly.\n\n"
-                        "The newsletter should announce that fresh ISO images (AcreetionOS 1.0 "
-                        "and AcreetionOS XL 1.0) have just been uploaded to the Internet Archive "
-                        "and SourceForge and are ready to download.\n\n"
+                        "Write an engaging daily update. Topics can include: development updates, "
+                        "Linux tips for AcreetionOS users, community highlights, privacy tips, "
+                        "new features coming, reasons to switch to AcreetionOS, comparisons with "
+                        "other distros, or general open source news relevant to the community.\n\n"
                         "Guidelines:\n"
                         "- Friendly, enthusiastic tone\n"
                         "- Technical but accessible\n"
-                        "- 200-300 words\n"
+                        "- 250-350 words\n"
                         "- First line must be: Subject: <your subject here>\n"
                         "- Leave a blank line after the subject before the body\n"
                         "- Plain text only, no markdown\n"
-                        "- End with: Download now from the Internet Archive or SourceForge."
+                        "- Sign off as: The AcreetionOS Team"
                     ),
                 }
             ],
         },
     )
-
     response.raise_for_status()
     content = response.json()["choices"][0]["message"]["content"].strip()
     lines = content.split("\n")
 
-    subject = "AcreetionOS - Fresh ISOs Now Available"
+    subject = f"AcreetionOS Daily - {datetime.now().strftime('%B %d, %Y')}"
     body_start = 0
 
     for i, line in enumerate(lines):
@@ -60,29 +66,80 @@ def generate_newsletter():
     return subject, body
 
 
-def send_newsletter(subject, body):
-    response = requests.post(
-        "https://api.buttondown.email/v1/emails",
-        headers={
-            "Authorization": f"Token {BUTTONDOWN_API_KEY}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "subject": subject,
-            "body": body,
-            "status": "about_to_send",
-        },
+def send_emails(subject, body):
+    recipients = [e.strip() for e in EMAIL_LIST.split(",") if e.strip()]
+
+    for email in recipients:
+        response = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": FROM_EMAIL,
+                "to": email,
+                "subject": subject,
+                "text": body,
+            },
+        )
+        if response.status_code not in (200, 201):
+            print(f"Failed to send to {email}: {response.status_code} {response.text}")
+        else:
+            print(f"Sent to {email}")
+
+
+def post_to_website(subject, body):
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    date_display = datetime.now().strftime("%B %d, %Y")
+    filename = f"newsletters/{date_str}.json"
+
+    entry = {
+        "date": date_str,
+        "date_display": date_display,
+        "subject": subject,
+        "body": body,
+    }
+
+    headers = {
+        "Authorization": f"token {GH_PAT}",
+        "Accept": "application/vnd.github+json",
+    }
+
+    # Check if file exists to get its SHA
+    check = requests.get(
+        f"https://api.github.com/repos/{WEBSITE_REPO}/contents/{filename}",
+        headers=headers,
+    )
+    sha = check.json().get("sha") if check.status_code == 200 else None
+
+    payload = {
+        "message": f"newsletter: add {date_str}",
+        "content": __import__("base64").b64encode(
+            json.dumps(entry, indent=2).encode()
+        ).decode(),
+    }
+    if sha:
+        payload["sha"] = sha
+
+    response = requests.put(
+        f"https://api.github.com/repos/{WEBSITE_REPO}/contents/{filename}",
+        headers=headers,
+        json=payload,
     )
 
     if response.status_code not in (200, 201):
-        raise Exception(f"Buttondown error {response.status_code}: {response.text}")
+        raise Exception(f"GitHub API error {response.status_code}: {response.text}")
 
-    print(f"Newsletter sent: {subject}")
+    print(f"Posted to website: {filename}")
 
 
 if __name__ == "__main__":
+    print("Generating newsletter...")
     subject, body = generate_newsletter()
     print(f"Subject: {subject}\n")
     print(body)
-    print("\n--- Sending ---")
-    send_newsletter(subject, body)
+    print("\n--- Sending emails ---")
+    send_emails(subject, body)
+    print("\n--- Posting to website ---")
+    post_to_website(subject, body)
