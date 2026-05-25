@@ -97,6 +97,33 @@ def send_emails(subject, body):
             print(f"Sent to {email}")
 
 
+def set_build_status(building):
+    import base64 as _b64
+    filename = "newsletters/status.json"
+    headers = {
+        "Authorization": f"token {GH_PAT}",
+        "Accept": "application/vnd.github+json",
+    }
+    check = requests.get(
+        f"https://api.github.com/repos/{WEBSITE_REPO}/contents/{filename}",
+        headers=headers,
+    )
+    sha = check.json().get("sha") if check.status_code == 200 else None
+    payload = {
+        "message": f"newsletter: {'start' if building else 'complete'} build",
+        "content": _b64.b64encode(json.dumps({"building": building}).encode()).decode(),
+    }
+    if sha:
+        payload["sha"] = sha
+    r = requests.put(
+        f"https://api.github.com/repos/{WEBSITE_REPO}/contents/{filename}",
+        headers=headers,
+        json=payload,
+    )
+    if r.status_code not in (200, 201):
+        print(f"Warning: could not set build status: {r.status_code}")
+
+
 def post_to_website(subject, body):
     date_str = datetime.now().strftime("%Y-%m-%d")
     date_display = datetime.now().strftime("%B %d, %Y")
@@ -143,11 +170,15 @@ def post_to_website(subject, body):
 
 
 if __name__ == "__main__":
-    print("Generating newsletter...")
-    subject, body = generate_newsletter()
-    print(f"Subject: {subject}\n")
-    print(body)
-    print("\n--- Sending emails ---")
-    send_emails(subject, body)
-    print("\n--- Posting to website ---")
-    post_to_website(subject, body)
+    set_build_status(True)
+    try:
+        print("Generating newsletter...")
+        subject, body = generate_newsletter()
+        print(f"Subject: {subject}\n")
+        print(body)
+        print("\n--- Sending emails ---")
+        send_emails(subject, body)
+        print("\n--- Posting to website ---")
+        post_to_website(subject, body)
+    finally:
+        set_build_status(False)
