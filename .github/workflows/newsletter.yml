@@ -1,0 +1,23 @@
+name: Send AcreetionOS Newsletter
+
+on:
+  schedule:
+    - cron: '0 2 * * 1,3,5'
+  workflow_dispatch:
+
+jobs:
+  newsletter:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Generate and send newsletter
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          BUTTONDOWN_API_KEY: ${{ secrets.BUTTONDOWN_API_KEY }}
+        run: python3 newsletter.py
