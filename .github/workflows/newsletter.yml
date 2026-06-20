@@ -17,9 +17,7 @@ jobs:
         run: pip install requests
 
       - name: Install opencode CLI
-        run: |
-          npm install -g @opencode-ai/cli
-          npx opencode --version
+        run: npm install -g @opencode-ai/cli
 
       - name: Generate, send, and post newsletter
         env:

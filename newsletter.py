@@ -31,7 +31,7 @@ def run_opencode(prompt: str) -> str:
     opencode looks for auth in $HOME/.local/share/opencode/auth.json.
     We write OPENCODE_AUTH_JSON there with 0600 perms, then wipe it.
     """
-    opencode_bin = os.environ.get("OPENCODE_BIN", "npx opencode")
+    opencode_bin = os.environ.get("OPENCODE_BIN", "npx --yes --package @opencode-ai/cli opencode")
     auth_json = os.environ.get("OPENCODE_AUTH_JSON")
     home = os.path.expanduser("~")
     opencode_data_dir = os.path.join(home, ".local", "share", "opencode")
