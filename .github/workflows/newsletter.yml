@@ -16,10 +16,9 @@ jobs:
       - name: Install Python dependencies
         run: pip install requests
 
-      - name: Install opencode CLI
-        run: |
-          npm install -g @opencode-ai/cli
-          echo "$(npm root -g)/../bin" >> "$GITHUB_PATH"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - name: Generate, send, and post newsletter
         env:
