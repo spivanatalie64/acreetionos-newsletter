@@ -17,7 +17,7 @@ def load_subscribers():
             if line.strip() and not line.startswith("#")
         ]
 
-MODEL = "meta-llama/llama-4-maverick:free"
+MODEL = "openrouter/free"
 WEBSITE_REPO = "acreetionos-code/acreetionos-code.github.io"
 FROM_EMAIL = "newsletter@acreetionos.org"
 
@@ -170,8 +170,8 @@ def post_to_website(subject, body):
 
 
 if __name__ == "__main__":
-    set_build_status(True)
     try:
+        set_build_status(True)
         print("Generating newsletter...")
         subject, body = generate_newsletter()
         print(f"Subject: {subject}\n")
