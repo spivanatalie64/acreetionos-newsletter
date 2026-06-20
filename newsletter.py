@@ -4,12 +4,7 @@
 import os
 import json
 import subprocess
-import sys
-import tempfile
-import shutil
 from datetime import datetime
-
-from pathlib import Path
 
 import requests
 
@@ -33,24 +28,23 @@ FROM_EMAIL = "newsletter@acreetionos.org"
 def run_opencode(prompt: str) -> str:
     """Run opencode CLI with the given prompt and return output.
 
-    Credentials are read from OPENCODE_AUTH_JSON env var, written to a
-    temp directory with restricted permissions, then wiped after use.
+    opencode looks for auth in $HOME/.local/share/opencode/auth.json.
+    We write OPENCODE_AUTH_JSON there with 0600 perms, then wipe it.
     """
     opencode_bin = os.environ.get("OPENCODE_BIN", "opencode")
     auth_json = os.environ.get("OPENCODE_AUTH_JSON")
-    auth_dir = None
+    home = os.path.expanduser("~")
+    opencode_data_dir = os.path.join(home, ".local", "share", "opencode")
+    auth_file = os.path.join(opencode_data_dir, "auth.json")
+    wrote_auth = False
 
     try:
         if auth_json:
-            # Isolated temp dir with strict permissions
-            runner_temp = os.environ.get("RUNNER_TEMP")
-            base = runner_temp or tempfile.gettempdir()
-            auth_dir = os.path.join(base, "opencode-auth-" + str(int(datetime.now().timestamp() * 1e6)))
-            os.makedirs(auth_dir, mode=0o700, exist_ok=True)
-            auth_file = os.path.join(auth_dir, "auth.json")
+            os.makedirs(opencode_data_dir, mode=0o700, exist_ok=True)
             with open(auth_file, "w") as f:
                 f.write(auth_json)
             os.chmod(auth_file, 0o600)
+            wrote_auth = True
 
         env = os.environ.copy()
         env["OPENCODE_NO_TELEMETRY"] = "1"
@@ -68,9 +62,11 @@ def run_opencode(prompt: str) -> str:
             )
         return result.stdout.strip()
     finally:
-        # Wipe credentials immediately
-        if auth_dir and os.path.isdir(auth_dir):
-            shutil.rmtree(auth_dir, ignore_errors=True)
+        if wrote_auth and os.path.isfile(auth_file):
+            try:
+                os.remove(auth_file)
+            except OSError:
+                pass
 
 
 def generate_newsletter():
