@@ -31,7 +31,7 @@ def run_opencode(prompt: str) -> str:
     opencode looks for auth in $HOME/.local/share/opencode/auth.json.
     We write OPENCODE_AUTH_JSON there with 0600 perms, then wipe it.
     """
-    opencode_bin = os.environ.get("OPENCODE_BIN", "opencode")
+    opencode_bin = os.environ.get("OPENCODE_BIN", "npx opencode")
     auth_json = os.environ.get("OPENCODE_AUTH_JSON")
     home = os.path.expanduser("~")
     opencode_data_dir = os.path.join(home, ".local", "share", "opencode")
@@ -50,11 +50,12 @@ def run_opencode(prompt: str) -> str:
         env["OPENCODE_NO_TELEMETRY"] = "1"
 
         result = subprocess.run(
-            [opencode_bin, "run", prompt],
+            f'{opencode_bin} run {__import__("shlex").quote(prompt)}',
             capture_output=True,
             text=True,
             timeout=120,
             env=env,
+            shell=True,
         )
         if result.returncode != 0:
             raise RuntimeError(

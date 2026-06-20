@@ -19,9 +19,7 @@ jobs:
       - name: Install opencode CLI
         run: |
           npm install -g @opencode-ai/cli
-          OPENCODE_PATH="$(npm root -g)/../bin"
-          echo "$OPENCODE_PATH" >> "$GITHUB_PATH"
-          "$OPENCODE_PATH/opencode" --version
+          npx opencode --version
 
       - name: Generate, send, and post newsletter
         env:
