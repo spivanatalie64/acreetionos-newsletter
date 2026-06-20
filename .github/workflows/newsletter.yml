@@ -16,15 +16,10 @@ jobs:
       - name: Install Python dependencies
         run: pip install requests
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
       - name: Install opencode CLI
         run: |
-          npm install -g @opencode-ai/cli
-          NPM_BIN="$(npm config get prefix)/bin"
-          ln -sf "$NPM_BIN/lildax" "$NPM_BIN/opencode"
-          echo "$NPM_BIN" >> "$GITHUB_PATH"
+          curl -fsSL https://opencode.ai/install | bash -s -- --no-modify-path
+          echo "$HOME/.opencode/bin" >> "$GITHUB_PATH"
           opencode --version
 
       - name: Generate, send, and post newsletter
