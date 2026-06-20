@@ -13,12 +13,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: pip install requests
+
+      - name: Install opencode CLI
+        run: |
+          npm install -g @opencode-ai/cli
+          opencode --version
 
       - name: Generate, send, and post newsletter
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENCODE_AUTH_JSON: ${{ secrets.OPENCODE_AUTH_JSON }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           GH_PAT: ${{ secrets.GH_PAT }}
         run: python3 newsletter.py
