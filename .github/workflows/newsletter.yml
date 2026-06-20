@@ -22,7 +22,10 @@ jobs:
       - name: Install opencode CLI
         run: |
           npm install -g @opencode-ai/cli
-          echo "$(npm config get prefix)/bin" >> "$GITHUB_PATH"
+          NPM_BIN="$(npm config get prefix)/bin"
+          ln -sf "$NPM_BIN/lildax" "$NPM_BIN/opencode"
+          echo "$NPM_BIN" >> "$GITHUB_PATH"
+          opencode --version
 
       - name: Generate, send, and post newsletter
         env:
